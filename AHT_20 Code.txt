@@ -1,0 +1,46 @@
+void AHT20_Read(float *Temperature, float *Humidity)
+{
+    uint8_t sendBuffer[3] = {0xAC, 0x33, 0x00};
+    uint8_t readBuffer[6];
+
+    HAL_I2C_Master_Transmit(&hi2c3, AHT20_ADDRESS, sendBuffer, 3, HAL_MAX_DELAY);
+    HAL_Delay(80);
+
+    HAL_I2C_Master_Receive(&hi2c3, AHT20_ADDRESS, readBuffer, 6, HAL_MAX_DELAY);
+
+    if ((readBuffer[0] & 0x80) == 0x00)
+    {
+        uint32_t data;
+
+        // Humidity
+        data = ((uint32_t)readBuffer[1] << 12) |
+               ((uint32_t)readBuffer[2] << 4) |
+               (readBuffer[3] >> 4);
+
+        *Humidity = (data * 100.0f) / 1048576.0f;
+
+        // Temperature
+        data = ((uint32_t)(readBuffer[3] & 0x0F) << 16) |
+               ((uint32_t)readBuffer[4] << 8) |
+               readBuffer[5];
+
+        *Temperature = ((data * 200.0f) / 1048576.0f) - 50.0f;
+    }
+}
+void UART_Print(char *msg)
+{
+    HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY);
+}
+
+
+
+
+      float temperature = 0.0f;
+      float humidity    = 0.0f;
+      char  msg[100];
+
+
+
+  AHT20_Read(&temperature, &humidity);
+  sprintf(msg, "Temp: %.2f C | Hum: %.2f %%\r\n", temperature, humidity);
+  UART_Print(msg);
